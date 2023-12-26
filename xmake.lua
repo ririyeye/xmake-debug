@@ -2,40 +2,26 @@ set_project(test)
 add_requires("local_libusb")
 
 package("local_libusb")
-    set_urls(path.join(os.scriptdir(), "libusb/libusb-1.0.26.tar.bz2"))
-    add_versions("1.0.26", "12ce7a61fc9854d1d2a1ffe095f7b5fac19ddba095c259e6067a46500381b5a5")
-
-    if is_plat("linux") then
-        add_syslinks("pthread")
-        add_includedirs("include", "include/libusb-1.0")    
-    end
+    set_urls(path.join(os.scriptdir(), "libusb-cmake.7z"))
+    add_versions("1.0.26", "49931bf30b8b825dcab86d9ebf37ea330d83ac3904d42f8954ae703d1f0ddccf")
 
     if get_config('target_os') == "linux" and is_plat("cross") then
         add_syslinks("pthread")
         add_includedirs("include", "include/libusb-1.0")
     end
 
-    on_install("cross" , "linux" ,function (package)
+    if is_plat('android') then
+        add_includedirs("include", "include/libusb-1.0")
+    end
+
+    on_install("cross" , "linux" ,"android" ,"windows" ,function (package)
         local configs = {}
 
-        table.insert(configs,"--enable-udev=false")
-        table.insert(configs,"--disable-shared")
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
+        table.insert(configs, "-DBUILD_SHARED_LIBS=OFF")
+        table.insert(configs, "-DLIBUSB_ENABLE_UDEV=OFF")
 
-        import("package.tools.autoconf").install(package,configs)
-    end)
-
-    on_fetch("windows" , function (package)
-        -- add dll
-        local result = {}
-
-        result.links = {"libusb-1.0"}
-        result.includedirs = path.join(os.scriptdir() , "libusb" , "windows" , "libusb-1.0")
-        if get_config("arch") == "x64" then 
-            result.linkdirs = path.join(os.scriptdir() , "libusb" , "windows" , "x64")
-        else
-            result.linkdirs = path.join(os.scriptdir() , "libusb" , "windows" , "win32")
-        end
-        return result
+        import("package.tools.cmake").install(package,configs)
     end)
 
 
