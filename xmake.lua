@@ -1,6 +1,8 @@
 set_project(test)
 add_requires("local_libusb")
 
+set_policy("build.optimization.lto", true)
+
 package("local_libusb")
     set_urls(path.join(os.scriptdir(), "libusb-cmake.7z"))
     add_versions("1.0.26", "49931bf30b8b825dcab86d9ebf37ea330d83ac3904d42f8954ae703d1f0ddccf")
@@ -24,9 +26,13 @@ package("local_libusb")
         import("package.tools.cmake").install(package,configs)
     end)
 
-
 target("test")
+    set_kind("static")
+    add_files("test.cpp")
+
+
+target("main")
     set_kind("binary")
-    add_files("a.cpp")
-    add_files("b.cpp")
+    add_files("main.cpp")
+    add_deps("test")
     add_packages("local_libusb")
