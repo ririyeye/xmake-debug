@@ -1,32 +1,60 @@
 set_project(test)
-add_requires("local_libusb")
 
-package("local_libusb")
-    set_urls(path.join(os.scriptdir(), "libusb-cmake.7z"))
-    add_versions("1.0.26", "49931bf30b8b825dcab86d9ebf37ea330d83ac3904d42f8954ae703d1f0ddccf")
+set_toolchains("arm-none-eabi")
 
-    if get_config('target_os') == "linux" and is_plat("cross") then
-        add_syslinks("pthread")
-        add_includedirs("include", "include/libusb-1.0")
+toolchain("arm-none-eabi")
+    set_kind("standalone")
+    if is_host("windows") then
+        set_sdkdir("E:\\work\\xpack-arm-none-eabi-gcc-14.2.1-1.1\\")
+    else
+        set_sdkdir("/home/wangyang/toolchain/xpack-arm-none-eabi-gcc-14.2.1-1.1")
     end
+    add_links(
+        "stdc++",
+        "supc++"
+    )
 
-    if is_plat('android') then
-        add_includedirs("include", "include/libusb-1.0")
-    end
+    local mcu = { "-mcpu=cortex-m4", "-mfpu=fpv4-sp-d16", "-mfloat-abi=hard", "-mthumb" }
+    table.join2(mcu, { "-fdata-sections", "-ffunction-sections" })
 
-    on_install("cross" , "linux" ,"android" ,"windows" ,function (package)
-        local configs = {}
+    add_defines("USE_STDPERIPH_DRIVER", "GD32E11X", "USE_USB_FS")
 
-        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
-        table.insert(configs, "-DBUILD_SHARED_LIBS=OFF")
-        table.insert(configs, "-DLIBUSB_ENABLE_UDEV=OFF")
+    add_cxflags(
+        mcu,
+        { force = true }
+    )
 
-        import("package.tools.cmake").install(package,configs)
-    end)
+    add_asflags(
+        mcu,
+        "-x assembler-with-cpp",
+        { force = true }
+    )
 
+    add_ldflags(
+        mcu,
+        "--specs=nano.specs",
+        "-Wl,--undefined=_exit -Wl,--defsym=_exit=0",
+        "-Wl,--gc-sections",
+        -- "-u _printf_float",
+        { force = true }
+    )
+toolchain_end()
+
+includes("@builtin/check")
 
 target("test")
+
+    configvar_check_sizeof("MD5_DAT_LEN", "int")
+
+
+    -- on_config(function (target)
+    --     local len = target:check_sizeof("md5::md5_t", {includes = "md5/md5_cpp/md5.h"})
+    --     target:add("defines", "MD5_DAT_LEN=" .. len, {public=true})
+    -- end)
+
+
     set_kind("binary")
     add_files("a.cpp")
     add_files("b.cpp")
+    add_files("syscalls.c")
     add_packages("local_libusb")
