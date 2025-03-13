@@ -46,10 +46,9 @@ target("test")
 
     configvar_check_sizeof("MD5_DAT_LEN", "int")
 
-
     -- on_config(function (target)
-    --     local len = target:check_sizeof("md5::md5_t", {includes = "md5/md5_cpp/md5.h"})
-    --     target:add("defines", "MD5_DAT_LEN=" .. len, {public=true})
+    --     local len = target:check_sizeof("int")
+    --     target:add("defines", "MD5_DAT_LEN=" .. len)
     -- end)
 
 
